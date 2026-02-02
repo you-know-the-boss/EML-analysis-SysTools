@@ -111,6 +111,7 @@
                         <button onclick="scrollToSection('dashboard')" class="border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</button> 
                         <button onclick="scrollToSection('anatomy')" class="border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Anatomy</button> 
                         <button onclick="scrollToSection('ai-assistant')" class="border-transparent text-indigo-600 hover:text-indigo-800 inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500 text-sm font-medium">AI Assistant ✨</button> 
+                        <button onclick="scrollToSection('video-forensics')" class="border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Video Forensics</button>
                         <button onclick="scrollToSection('research')" class="border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Research</button> 
                     </div> 
                 </div> 
@@ -134,6 +135,7 @@
                 <button onclick="scrollToSection('dashboard'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left py-2 text-base font-medium text-stone-600 hover:text-stone-800 hover:bg-stone-50 rounded-md px-2">Dashboard</button>
                 <button onclick="scrollToSection('anatomy'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left py-2 text-base font-medium text-stone-600 hover:text-stone-800 hover:bg-stone-50 rounded-md px-2">Anatomy</button>
                 <button onclick="scrollToSection('ai-assistant'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left py-2 text-base font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md px-2">AI Assistant ✨</button>
+                <button onclick="scrollToSection('video-forensics'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left py-2 text-base font-medium text-stone-600 hover:text-stone-800 hover:bg-stone-50 rounded-md px-2">Video Forensics</button>
                 <button onclick="scrollToSection('research'); document.getElementById('mobile-menu').classList.add('hidden')" class="block w-full text-left py-2 text-base font-medium text-stone-600 hover:text-stone-800 hover:bg-stone-50 rounded-md px-2">Research</button>
                 <button class="block w-full text-left py-2 text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md px-2 mt-2">Export Report</button>
             </div>
@@ -325,7 +327,25 @@ Received: from unknown (10.0.0.1)
             </div> 
         </section> 
  
-        <!-- Section 4: Research & Glossary --> 
+        <!-- Section 4: Video Forensics -->
+        <section id="video-forensics" class="bg-white rounded-xl shadow-lg border border-stone-200 overflow-hidden">
+            <div class="p-6 border-b border-stone-200 bg-stone-50">
+                <h2 class="text-2xl font-bold text-stone-800">Video Forensics & Debug Analysis</h2>
+                <p class="text-stone-600 mt-2">
+                    Analyze YouTube "Stats for Nerds" debug data to extract technical playback details.
+                </p>
+            </div>
+            <div class="p-6 space-y-4">
+                <textarea id="videoDebugInput" class="w-full h-32 bg-stone-50 border border-stone-300 rounded-md p-3 text-xs font-mono text-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Paste JSON debug code here..."></textarea>
+                <button onclick="parseVideoDebug()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-sm">Parse Debug Info</button>
+
+                <div id="videoDebugResult" class="hidden mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Results populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Research & Glossary -->
         <section id="research" class="grid grid-cols-1 lg:grid-cols-12 gap-8"> 
              
             <!-- Research Summaries (Left) --> 
@@ -618,6 +638,79 @@ Received: from unknown (10.0.0.1)
  
             callGemini(prompt, 'scenarioResult', 'generateBtn', 'Generate Scenario ✨', true); 
         } 
+
+        // Feature 3: Parse Video Debug Info
+        function parseVideoDebug() {
+            const input = document.getElementById('videoDebugInput').value;
+            const resultDiv = document.getElementById('videoDebugResult');
+
+            try {
+                if (!input.trim()) {
+                    alert("Please paste the debug JSON.");
+                    return;
+                }
+
+                const data = JSON.parse(input);
+
+                // Helper to escape HTML
+                const escapeHtml = (unsafe) => {
+                    return String(unsafe || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                }
+
+                // Helper to create metric cards
+                const createMetric = (label, value, desc) => `
+                    <div class="bg-stone-50 p-4 rounded border border-stone-100">
+                        <div class="text-xs font-semibold text-stone-500 uppercase tracking-wide">${escapeHtml(label)}</div>
+                        <div class="text-lg font-mono font-bold text-stone-800 mt-1 truncate" title="${escapeHtml(value)}">${escapeHtml(value)}</div>
+                        ${desc ? `<div class="text-xs text-stone-400 mt-1">${escapeHtml(desc)}</div>` : ''}
+                    </div>
+                `;
+
+                let html = "";
+
+                // Video ID
+                html += createMetric("Video ID", data.debug_videoId || data.docid || "N/A", "Unique Video Identifier");
+
+                // CPN
+                html += createMetric("CPN", data.cpn || "N/A", "Client Playback Nonce");
+
+                // Playback Format
+                html += createMetric("Format / Itag", data.fmt || "N/A", "Stream Format ID");
+
+                // Resolution
+                const res = (data.vw && data.vh) ? `${data.vw}x${data.vh}` : (data.debug_playbackQuality || "N/A");
+                html += createMetric("Resolution", res, "Viewport Dimensions");
+
+                // Volume
+                const vol = data.volume !== undefined ? data.volume : (data.vvol ? Math.round(parseFloat(data.vvol)*100) : "N/A");
+                html += createMetric("Volume", vol + "%", "Playback Volume");
+
+                // Buffer
+                html += createMetric("Buffer Health", data.vbu ? `${data.vbu}` : "N/A", "Buffered Range (s)");
+
+                // Bandwidth
+                html += createMetric("Bandwidth", data.lbw ? `${(parseFloat(data.lbw) / 1000000).toFixed(2)} Mbps` : "N/A", "Estimated Throughput");
+
+                // Dropped Frames
+                html += createMetric("Dropped Frames", data.dvf || "0", "Frame Drop Count");
+
+                // Host/Device
+                const device = `${data.cbr || ""} ${data.cbrver || ""} (${data.cos || ""})`;
+                html += createMetric("Client Info", device.trim() || "N/A", "Browser & OS");
+
+                resultDiv.innerHTML = html;
+                resultDiv.classList.remove('hidden');
+
+            } catch (e) {
+                alert("Invalid JSON format. Please ensure you copied the entire object starting with { and ending with }.");
+                console.error(e);
+            }
+        }
  
         // --- 4. Chart Initialization --- 
         document.addEventListener('DOMContentLoaded', () => { 
